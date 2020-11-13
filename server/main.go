@@ -25,6 +25,14 @@ func multiply(ctx context.Context, request *protos.Request) (*protos.Response, e
 	return &protos.Response{Result: result}, nil
 }
 
+func divide(ctx context.Context, request *protos.Request) (*protos.Response, error) {
+	a, b := request.GetA(), request.GetB()
+
+	result := a / b
+
+	return &protos.Response{Result: result}, nil
+}
+
 func main() {
 	listener, err := net.Listen("tcp", ":4040")
 	if err != nil {
@@ -36,6 +44,7 @@ func main() {
 	AlgebraServiceObj := protos.AlgebraService{
 		Add:      add,
 		Multiply: multiply,
+		Divide: divide,
 	}
 
 	protos.RegisterAlgebraService(srv, &AlgebraServiceObj)

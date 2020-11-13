@@ -4,7 +4,6 @@ package protos
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -20,6 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 type AlgebraClient interface {
 	Add(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
 	Multiply(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
+	Divide(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
 }
 
 type algebraClient struct {
@@ -56,6 +56,19 @@ func (c *algebraClient) Multiply(ctx context.Context, in *Request, opts ...grpc.
 	return out, nil
 }
 
+var algebraDivideStreamDesc = &grpc.StreamDesc{
+	StreamName: "Divide",
+}
+
+func (c *algebraClient) Divide(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/protos.Algebra/Divide", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AlgebraService is the service API for Algebra service.
 // Fields should be assigned to their respective handler implementations only before
 // RegisterAlgebraService is called.  Any unassigned fields will result in the
@@ -63,6 +76,7 @@ func (c *algebraClient) Multiply(ctx context.Context, in *Request, opts ...grpc.
 type AlgebraService struct {
 	Add      func(context.Context, *Request) (*Response, error)
 	Multiply func(context.Context, *Request) (*Response, error)
+	Divide   func(context.Context, *Request) (*Response, error)
 }
 
 func (s *AlgebraService) add(_ interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -99,6 +113,23 @@ func (s *AlgebraService) multiply(_ interface{}, ctx context.Context, dec func(i
 	}
 	return interceptor(ctx, in, info, handler)
 }
+func (s *AlgebraService) divide(_ interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return s.Divide(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     s,
+		FullMethod: "/protos.Algebra/Divide",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return s.Divide(ctx, req.(*Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 // RegisterAlgebraService registers a service implementation with a gRPC server.
 func RegisterAlgebraService(s grpc.ServiceRegistrar, srv *AlgebraService) {
@@ -113,6 +144,11 @@ func RegisterAlgebraService(s grpc.ServiceRegistrar, srv *AlgebraService) {
 			return nil, status.Errorf(codes.Unimplemented, "method Multiply not implemented")
 		}
 	}
+	if srvCopy.Divide == nil {
+		srvCopy.Divide = func(context.Context, *Request) (*Response, error) {
+			return nil, status.Errorf(codes.Unimplemented, "method Divide not implemented")
+		}
+	}
 	sd := grpc.ServiceDesc{
 		ServiceName: "protos.Algebra",
 		Methods: []grpc.MethodDesc{
@@ -123,6 +159,10 @@ func RegisterAlgebraService(s grpc.ServiceRegistrar, srv *AlgebraService) {
 			{
 				MethodName: "Multiply",
 				Handler:    srvCopy.multiply,
+			},
+			{
+				MethodName: "Divide",
+				Handler:    srvCopy.divide,
 			},
 		},
 		Streams:  []grpc.StreamDesc{},

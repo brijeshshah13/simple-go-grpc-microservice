@@ -15,4 +15,5 @@ message Response {
 service Algebra {
     rpc Add (Request) returns (Response);
     rpc Multiply (Request) returns (Response);
+    rpc Divide (Request) returns (Response);
 }
